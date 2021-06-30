@@ -7,11 +7,12 @@
 
 import UIKit
 
-class SuperHeroTableView: UITableViewController {
+class SuperHeroTableView: UITableViewController{
     
     var isPaginating = false
     let client = NetworkClient()
     var listOfSuperHeros:[CharacterResult] = []
+    var listOfSuperHerosInCache: [CharacterResult] = []
     var misCells: MCell = MCell(xibName: "HeroCell", idReuse: "HeroCell")
     var misCells2: MCell = MCell(xibName: "LoadingCell", idReuse: "LoadingCell")
     var offset = 0
@@ -19,57 +20,106 @@ class SuperHeroTableView: UITableViewController {
     var totalSuperHeros = 1493
     var actualSuperHeroTappedIndex = 0
     var actualSuperHeroTappedObjet: CharacterResult? = nil
-    //var detailViewImage:UIView? = nil
+    var searchWithIsStarted: Bool = false
+    var currentSearchString: String = ""
+    var stillNotRuningSearchString: Bool = true
+  
+
+    //MARK: - Search Controller
+    lazy var searchBar: UISearchController = {
+        let bar = UISearchController(searchResultsController: nil)
+        bar.searchResultsUpdater = self
+        bar.searchBar.placeholder = "Search Heros"
+        bar.obscuresBackgroundDuringPresentation = false
+        return bar
+    }()
     
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        //detailViewImage = view.viewWithTag(1)
+        loadMoreData()
+        
+        tableView.keyboardDismissMode = UIScrollView.KeyboardDismissMode.onDrag
+        
+        definesPresentationContext = true
+    
+        self.navigationItem.searchController = searchBar
         
         self.tableView!.register(UINib(nibName: misCells.xibName, bundle: nil), forCellReuseIdentifier: misCells.idReuse)
         self.tableView!.register(UINib(nibName: misCells2.xibName, bundle: nil), forCellReuseIdentifier: misCells2.idReuse)
-        //self.tableView.separatorStyle = .none //quita las lineas grises espaciadoras    }
         
+    //MARK: - Functions
     }
     
     private func getData(){
-        
-        print("Empieza")
+        print("All Heros start")
         
         client.getCharacters(offset: offset) { [self] result in
             switch result {
             case .success(let characters):
                 
                 guard let trustListOfSuperHeros = characters.data?.results else {return}
+                
                 offset += trustListOfSuperHeros.count
+                
                 self.listOfSuperHeros.append(contentsOf: trustListOfSuperHeros)
+                
                 self.tableView.reloadData()
                 self.isLoading = false
-                print (listOfSuperHeros.count)
                 
-            //self.isPaginating = true
-            //print(characters.data?.results?.first as Any)
-            //Refrescar la UITableview
-            //self.tableview.reloadData
             case .failure(let error):
                 // Mostrar una alerta al usuarios con el errorDescription
-                print(error.errorDescription)
+                print(error.errorDescription ?? "nada")
                 switch error {
-                case .serverError(let description):
+                case .serverError(_):
                     // Alerta al usuario que le haga li que sea
                     break
-                case .dataError(let description):
+                case .dataError(_):
                     // Redirigir al login
                     break
-                case .serializationError(let description):
+                case .serializationError(_):
                     // Hacer n allamada al serivodr
                     break
                 }
             }
         }
-        
-        print("Acaba")
+        print("All Heros stop")
     }
+    
+    private func getData2(nameStartWith: String){
+        
+        print("Search range start")
+        client.getCharactersStartWith(nameStartsWith: nameStartWith, offset: offset) { [self] result in
+            switch result {
+            case .success(let characters):
+                
+                guard let trustListOfSuperHeros = characters.data?.results else {return}
+                
+                self.listOfSuperHeros.append(contentsOf: trustListOfSuperHeros)
+                
+                self.tableView.reloadData()
+                
+                self.isLoading = false
+                
+            case .failure(let error):
+                // Mostrar una alerta al usuarios con el errorDescription
+                print(error.errorDescription ?? "nada")
+                switch error {
+                case .serverError(_):
+                    // Alerta al usuario que le haga li que sea
+                    break
+                case .dataError(_):
+                    // Redirigir al login
+                    break
+                case .serializationError(_):
+                    // Hacer n allamada al serivodr
+                    break
+                }
+            }
+        }
+        print("Search range stop")
+    }
+    
     
     override func numberOfSections(in tableView: UITableView) -> Int {
         
@@ -81,25 +131,21 @@ class SuperHeroTableView: UITableViewController {
     }
     
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        
         if section == 0{
             //Return the amount of items
             return listOfSuperHeros.count
             
         } else if section == 1 {
-            
             //Return the Loading cell
             return 1
             
         } else {
             //Return nothing
             return 0
-            
         }
     }
     
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        
         
         if indexPath.section == 0 {
             
@@ -135,7 +181,6 @@ class SuperHeroTableView: UITableViewController {
         }
     }
     
-    
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
         let detailView = segue.destination as! DetailViewController
         detailView.actualSuperHeroObjet = actualSuperHeroTappedObjet
@@ -147,11 +192,17 @@ class SuperHeroTableView: UITableViewController {
         let scrollViewActualHeight = scrollView.contentOffset.y
         let tableSize = tableView.contentSize.height
         let scrollFrameSize = scrollView.frame.size.height
-    
-        if (scrollViewActualHeight > tableSize - scrollFrameSize - 400)  && !isLoading && offset != totalSuperHeros{ //Con isloading evitamos que nos haga tantas llamadas como tarde en pintar los nuevos datos.
+        
+        if (scrollViewActualHeight > tableSize - scrollFrameSize - 400)  && !isLoading && offset < totalSuperHeros{ //Con isloading evitamos que nos haga tantas llamadas como tarde en pintar los nuevos datos.
             
-            loadMoreData()
+            if searchWithIsStarted{
+                isLoading = true
+                getData2(nameStartWith: currentSearchString)
+            }
             
+            if stillNotRuningSearchString{
+                loadMoreData()
+            }
         }
     }
     
@@ -175,3 +226,27 @@ struct MCell {
     var idReuse: String
 }
 
+extension SuperHeroTableView: UISearchResultsUpdating {
+  func updateSearchResults(for searchController: UISearchController) {
+    // TODO
+    
+    guard let trustSearchBarText = searchController.searchBar.text else {return}
+    
+    if trustSearchBarText != ""{
+        listOfSuperHerosInCache = listOfSuperHeros
+        stillNotRuningSearchString = false
+        currentSearchString = trustSearchBarText
+        searchWithIsStarted = true
+        listOfSuperHeros.removeAll()
+        offset = 0
+        getData2(nameStartWith: trustSearchBarText)
+        tableView.reloadData()
+    }else{
+        print("cargando vacio...")
+        //tableView.reloadData()
+        //loadMoreData()
+    }
+    
+  }
+
+}

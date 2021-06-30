@@ -1,0 +1,89 @@
+import Foundation
+
+struct SerieResponse: Codable {
+    //let code: Int?
+    //let status, copyright, attributionText, attributionHTML: String?
+    let data: SerieData?
+    //let etag: String?
+}
+
+struct SerieData: Codable {
+    //let offset, limit, total, count: Int?
+    let results: [SerieResult]?
+}
+
+struct SerieResult: Codable {
+    //let id, startYear, endYear: Int?
+    //let title, description, resourceURL, rating: String?
+    //let urls: [SerieUrl]?
+    let thumbnail: SerieThumbnail?
+    /*let comics: SerieComic?
+    let stories: SerieStory?
+    let events: SerieEvent?
+    let characters: SerieCharacter?
+    let creators: SerieCreator?
+    let next: SerieNext?
+    let previous: SeriePreviou?*/
+
+}
+
+/*struct SerieUrl: Codable {
+    let type, url: String?
+}*/
+
+struct SerieThumbnail: Codable {
+    let path, extensionn: String?
+    
+    private enum CodingKeys: String, CodingKey{
+        case path
+        case extensionn = "extension"
+    }
+}
+
+/*struct SerieComic: Codable {
+    let available, returned: Int?
+    let collectionURL: String?
+    let items: [SerieItem]?
+}
+
+struct SerieItem: Codable {
+    let resourceURL, name, type, role: String?
+}
+
+struct SerieStory: Codable {
+    let available, returned: Int?
+    let collectionURL: String?
+    let items:[ComicItem]?
+}
+
+struct SerieEvent: Codable {
+    let available, returned: Int?
+    let collectionURL: String?
+    let items: [SerieItem]?
+}
+
+struct SerieCharacter: Codable {
+    let available, returned: Int?
+    let collectionURL: String?
+    let items: [SerieItem]?
+}
+
+struct SerieCreator: Codable {
+    let available, returned: Int?
+    let collectionURL: String?
+    let items: [SerieItem]?
+}
+
+struct SerieNext: Codable {
+    let resourceURL, name: String?
+}
+
+struct SeriePreviou: Codable {
+    let resourceURL, name: String?
+}*/
+
+
+
+
+
+

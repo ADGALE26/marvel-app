@@ -13,6 +13,7 @@ class HeroCell: UITableViewCell {
     @IBOutlet weak var superHeroImage: UIImageView!
     @IBOutlet weak var superHeroName: UILabel!
     @IBOutlet weak var superHeroDescription: UILabel!
+    
     var tapAction : (()->())?
     
     @IBAction func goToDetail (_ sender: Any){
@@ -25,8 +26,9 @@ class HeroCell: UITableViewCell {
     
     
     func setData(superHero:CharacterResult){
-        superHeroDescription.text = superHero.description
+        
         superHeroName.text = superHero.name
+        
         superHeroImage.layer.cornerRadius = 7
         guard let trustSuperHeroImage = superHero.thumbnail?.path else {return}
         let corte = trustSuperHeroImage.firstIndex(of: ":")
@@ -35,7 +37,12 @@ class HeroCell: UITableViewCell {
         
         superHeroImage.kf.setImage(with: URL(string: superHeroImageHttps))
         
-        
+        guard let trustDescription = superHero.description else {return}
+        if trustDescription.isEmpty{
+            superHeroDescription.text = "No description available"
+        }else{
+            superHeroDescription.text = trustDescription
+        }
     }
 
     /*override func setSelected(_ selected: Bool, animated: Bool) {
